@@ -68,8 +68,8 @@ def calc_angular_z(cx, tx):
     e = tx - cx
     p = 0.0025
     z = p * e
-    if z > 0: min(z, 0.3)
-    if z < 0: max(z, -0.3)
+    if z > 0: z = min(z, 0.3)
+    if z < 0: z = max(z, -0.3)
     return z
     
     
@@ -77,8 +77,8 @@ def calc_linear_x(cd, td):
     e = cd - td
     p = 0.0005
     x = p * e
-    if x > 0: min(x, 0.5)
-    if x < 0: max(x, -0.5)
+    if x > 0: x = min(x, 0.5)
+    if x < 0: x = max(x, -0.5)
     return x
     
 
