@@ -101,7 +101,7 @@ if __name__ == "__main__":
     # cmd_vel Publisher
     msg_cmd = Twist()
     pub_cmd = rospy.Publisher("/cmd_vel", Twist)
-    
+    pre_x,pre_z=0.0,0.0
     # Models
     net_pose = HumanPoseEstimation()
     
@@ -120,12 +120,21 @@ if __name__ == "__main__":
             _, _, d = get_real_xyz(cx, cy)
             cv2.circle(frame, (cx, cy), 5, (0, 255, 0), -1)
 
-            z = calc_angular_z(cx, 320)
-            x = calc_linear_x(d, 1000)
-            msg_cmd.linear.x = 0.0
-            print(x)
-            # msg_cmd.angular.z = z
+            cur_z = calc_angular_z(cx, 320)
+            cur_x = calc_linear_x(d, 1000)
+            #smove control
+            new_x=cur_x - pre_x
+            if dx>0: dx=min(dx,0.05)
+            if dx<0: dx=max(dx,-0.05)
+            msg_cmd.linear.x = pre_x + new_x
             
+            new_z=cur_z - pre_z
+            if dz>0: dx=min(dz,0.1)
+            if dz<0: dx=max(dz,-0.1)
+            msg_cmd.linear.x = pre_x + new_x
+            
+            msg_cmd.angular.z = pre_z + new_z
+        pre_x,pre_z=msg_cmd.linear.x,msg_cmd.linear.z,
         pub_cmd.publish(msg_cmd)
         
         cv2.imshow("frame", frame)
