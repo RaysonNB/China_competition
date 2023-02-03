@@ -3,7 +3,6 @@ import rospy
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 import cv2
-
 from pcms.openvino_models import HumanPoseEstimation
 import numpy as np
 from geometry_msgs.msg import Twist
@@ -41,7 +40,26 @@ def get_pose_target(pose,num):
     if len(p) == 0: return -1, -1
     return int(p[0][0]),int(p[0][1])
     
-    
+
+def find_all():
+    global ddn_rcnn
+    global frame
+    global boxes
+    boxes = ddn_rcnn.forward(frame)
+    if len(boxes) == 0:
+        return "nothing"
+    for id, index, conf, x1, y1, x2, y2 in boxes:
+        name=ddn_rcnn.labels[index]
+        #if namee=="bottle": #name=="suitcase" or name=="backpack":
+        cv2.putText(frame, name, (x1 + 5, y1 + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        cx = (x2 - x1) // 2 + x1
+        cy = (y2 - y1) // 2 + y1
+        cv2.circle(frame, (cx, cy), 5, (0, 255, 0), -1)
+        
+        return (x1, y1), (x2, y2), (cx, cy), name
+
+
 def get_target(poses):
     target = -1
     target_d = 9999999
@@ -75,19 +93,28 @@ if __name__ == "__main__":
         frame = _frame.copy()
         poses = net_pose.forward(frame)
         pose = get_target(poses)
+        boxes = ddn_rcnn.forward(frame)
+        print(boxes)
+        if len(boxes) != 0:
+            print(len(boxes))
+            #[0, tensor(1), tensor(0.9491, grad_fn=<UnbindBackward>), 2, 102, 100, 264]
+            #[0, tensor(1), tensor(0.8638, grad_fn=<UnbindBackward>), 118, 121, 194, 202]
+            for id, index, conf, x1, y1, x2, y2 in boxes:
+                name=ddn_rcnn.labels[index]
+                if name=="bottle": #name=="suitcase" or name=="backpack":
+                    cv2.putText(frame, name, (x1 + 5, y1 + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                    cx1 = (x2 - x1) // 2 + x1
+                    cy1 = (y2 - y1) // 2 + y1
+                    cv2.circle(frame, (cx1, cy1), 5, (0, 255, 0), -1)
         if pose is not None:
-            
-            # 1 pose
-            
-            # 2 points
-            
-            # objects
-            
-            # calc
             for num in [7,8,9,10]:
                 cx, cy = get_pose_target(pose,num)
                 _, _, d = get_real_xyz(cx, cy)
                 cv2.circle(frame, (cx,cy), 5, (0, 255, 0), -1)
+            # objects
+            # calc
+            z=
         cv2.imshow("frame", frame)
         key_code = cv2.waitKey(1)
         if key_code in [27, ord('q')]:
