@@ -7,7 +7,7 @@ from pcms.openvino_models import HumanPoseEstimation
 import numpy as np
 from geometry_msgs.msg import Twist
 from pcms.pytorch_models import *
-
+import math
 def callback_image(msg):
     global _frame
     _frame = CvBridge().imgmsg_to_cv2(msg, "bgr8")
@@ -17,7 +17,6 @@ def say(a):
 def callback_depth(msg):
     global _depth
     _depth = CvBridge().imgmsg_to_cv2(msg, "passthrough")
-    
     
 def get_real_xyz(x, y):
     global _depth
@@ -72,6 +71,17 @@ def get_target(poses):
             target_d = d
     if target == -1: return None
     return poses[target]
+def get_x():
+    global ax,ay,az,bx,by,bz,px,py,px
+    num1=(bx-ax)*px+(by-ay)*py+(bz-az)*pz-(bx-ax)*ax-(by-ay)*ay-(bz-az)*az
+    num2=(bx-ax)**2+(by-ay)**2+(bz-az)**2
+    t=num1/num2
+    qx=(bx-ax)*t + ax
+    qy=(by-ay)*t + ay
+    qz=(bz-az)*t + az
+    distance = math.sqrt((px-qx)**2 +(py-qy)**2+(bz-az)**2)
+    return distance
+    
 if __name__ == "__main__":
     rospy.init_node("demo")
     rospy.loginfo("demo node start!")
@@ -94,27 +104,26 @@ if __name__ == "__main__":
         poses = net_pose.forward(frame)
         pose = get_target(poses)
         boxes = ddn_rcnn.forward(frame)
-        print(boxes)
-        if len(boxes) != 0:
-            print(len(boxes))
-            #[0, tensor(1), tensor(0.9491, grad_fn=<UnbindBackward>), 2, 102, 100, 264]
-            #[0, tensor(1), tensor(0.8638, grad_fn=<UnbindBackward>), 118, 121, 194, 202]
-            for id, index, conf, x1, y1, x2, y2 in boxes:
-                name=ddn_rcnn.labels[index]
-                if name=="bottle": #name=="suitcase" or name=="backpack":
-                    cv2.putText(frame, name, (x1 + 5, y1 + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
-                    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                    cx1 = (x2 - x1) // 2 + x1
-                    cy1 = (y2 - y1) // 2 + y1
-                    cv2.circle(frame, (cx1, cy1), 5, (0, 255, 0), -1)
-        if pose is not None:
-            for num in [7,8,9,10]:
-                cx, cy = get_pose_target(pose,num)
-                _, _, d = get_real_xyz(cx, cy)
+        #[0, tensor(1), tensor(0.9491, grad_fn=<UnbindBackward>), 2, 102, 100, 264]
+        #[0, tensor(1), tensor(0.8638, grad_fn=<UnbindBackward>), 118, 121, 194, 202]
+        for id, index, conf, x1, y1, x2, y2 in boxes:
+            name=ddn_rcnn.labels[index]
+            if pose is not None:
+                #for num in [7,9]: #[7,9] left, [8,10] right
+                cx, cy = get_pose_target(pose,7)
                 cv2.circle(frame, (cx,cy), 5, (0, 255, 0), -1)
-            # objects
-            # calc
-            z=
+                ax, ay, az = get_real_xyz(cx, cy)
+                cx, cy = get_pose_target(pose,9)
+                cv2.circle(frame, (cx,cy), 5, (0, 255, 0), -1)
+                bx, by, bz = get_real_xyz(cx, cy)
+            if name=="bottle": #name=="suitcase" or name=="backpack":
+                cx1 = (x2 - x1) // 2 + x1
+                cy1 = (y2 - y1) // 2 + y1
+                cv2.circle(frame, (cx1, cy1), 5, (0, 255, 0), -1)
+                px,py,pz=get_real_xyz(cx1, cy1)
+                cv2.putText(frame, str(get_x()), (x1 + 5, y1 + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+            
         cv2.imshow("frame", frame)
         key_code = cv2.waitKey(1)
         if key_code in [27, ord('q')]:
