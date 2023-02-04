@@ -8,6 +8,8 @@ import numpy as np
 from geometry_msgs.msg import Twist
 from pcms.pytorch_models import *
 import math
+
+#https://github.com/supercatex/code/blob/master/ros/demo3.py
 def callback_image(msg):
     global _frame
     _frame = CvBridge().imgmsg_to_cv2(msg, "bgr8")
@@ -71,18 +73,23 @@ def get_target(poses):
             target_d = d
     if target == -1: return None
     return poses[target]
-def get_x():
+def get_distance():
+    A,B,C,p1,p2,p3,qx,qy,qz,distance=0,0,0,0,0,0,0,0,0,0
     global ax,ay,az,bx,by,bz,px,py,px
-    num1=(bx-ax)*px+(by-ay)*py+(bz-az)*pz-(bx-ax)*ax-(by-ay)*ay-(bz-az)*az
-    num2=(bx-ax)**2+(by-ay)**2+(bz-az)**2
-    t=num1/num2
-    qx=(bx-ax)*t + ax
-    qy=(by-ay)*t + ay
-    qz=(bz-az)*t + az
+    A=bx-ax
+    B=by-ay
+    C=bz-az
+    p1=A*px+B*py+C*pz
+    p2=A*ax+B*ay+C*az
+    p3=A*A+B*B+C*C
+    t=(p1-p2)/p3
+    qx=A*t + ax
+    qy=B*t + ay
+    qz=C*t + az
     distance = math.sqrt((px-qx)**2 +(py-qy)**2+(bz-az)**2)
     return distance
     
-if __name__ == "__main__":
+if __name__ == "__main__": 
     rospy.init_node("demo")
     rospy.loginfo("demo node start!")
     
@@ -94,7 +101,7 @@ if __name__ == "__main__":
     
     _cmd_vel = rospy.Publisher("/cmd_vel", Twist, queue_size=10)
     rospy.sleep(1)
-    ddn_rcnn = FasterRCNN()
+    ddn_rcnn = Yolov5()
     net_pose = HumanPoseEstimation()
     while not rospy.is_shutdown():
         rospy.Rate(20).sleep()
@@ -106,24 +113,58 @@ if __name__ == "__main__":
         boxes = ddn_rcnn.forward(frame)
         #[0, tensor(1), tensor(0.9491, grad_fn=<UnbindBackward>), 2, 102, 100, 264]
         #[0, tensor(1), tensor(0.8638, grad_fn=<UnbindBackward>), 118, 121, 194, 202]
+        dis=[]
+        min1=999999999
+        bx, by, bz,ax, ay, az, px,py,pz =0,0,0,0,0,0,0,0,0
         for id, index, conf, x1, y1, x2, y2 in boxes:
             name=ddn_rcnn.labels[index]
             if pose is not None:
                 #for num in [7,9]: #[7,9] left, [8,10] right
-                cx, cy = get_pose_target(pose,7)
-                cv2.circle(frame, (cx,cy), 5, (0, 255, 0), -1)
-                ax, ay, az = get_real_xyz(cx, cy)
-                cx, cy = get_pose_target(pose,9)
-                cv2.circle(frame, (cx,cy), 5, (0, 255, 0), -1)
-                bx, by, bz = get_real_xyz(cx, cy)
+                cx7, cy7 = get_pose_target(pose,7)
+                #print(cx7,cy7)
+                cx9, cy9 = get_pose_target(pose,9)
+                #print(cx9,cy9)
+                if cx7==-1 and cx9!=-1:
+                    cx5, cy5 = get_pose_target(pose,5)
+                    cv2.circle(frame, (cx5,cy5), 5, (0, 255, 0), -1)
+                    ax,ay,az = get_real_xyz(cx5, cy5)
+                    cv2.circle(frame, (cx9,cy9), 5, (0, 255, 0), -1)
+                    bx, by, bz = get_real_xyz(cx9, cy9)
+                elif cx7 !=-1 and cx9 ==-1:
+                    cx5, cy5 = get_pose_target(pose,5)
+                    cv2.circle(frame, (cx5,cy5), 5, (0, 255, 0), -1)
+                    bx,by,bz = get_real_xyz(cx5, cy5)
+                    cv2.circle(frame, (cx7,cy7), 5, (0, 255, 0), -1)
+                    ax, ay, az = get_real_xyz(cx7, cy7)
+                elif cx7 ==-1 and cx9 == -1:
+                    print("where is your hand")
+                    continue
+                else:
+                    cv2.circle(frame, (cx7,cy7), 5, (0, 255, 0), -1)
+                    ax, ay, az = get_real_xyz(cx7, cy7)
+                    cv2.circle(frame, (cx9,cy9), 5, (0, 255, 0), -1)
+                    bx, by, bz = get_real_xyz(cx9, cy9)
             if name=="bottle": #name=="suitcase" or name=="backpack":
                 cx1 = (x2 - x1) // 2 + x1
                 cy1 = (y2 - y1) // 2 + y1
                 cv2.circle(frame, (cx1, cy1), 5, (0, 255, 0), -1)
                 px,py,pz=get_real_xyz(cx1, cy1)
-                cv2.putText(frame, str(get_x()), (x1 + 5, y1 + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
-                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-            
+                cnt=get_distance()
+                #print(cnt)
+                dis.append(cnt)
+                if cnt<=min1 and cnt<=600:
+                    if str(cnt)!="nan":
+                        cv2.putText(frame, str(int(cnt)//10), (x1 + 5, y1 + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+                        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 5)
+                        min1=cnt
+                else:
+                    if str(cnt)!="nan":
+                        cv2.putText(frame, str(int(cnt)//10), (x1 + 5, y1 + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+                        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 5)
+            for i,ii in enumerate(dis):
+                if(str(i)!="nan" and str(ii)!="nan"):
+                    print("num"+str(i),int(ii)//10,end=" ")
+            print("")
         cv2.imshow("frame", frame)
         key_code = cv2.waitKey(1)
         if key_code in [27, ord('q')]:
