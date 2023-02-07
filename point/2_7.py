@@ -67,12 +67,32 @@ def get_pose_target(pose,num):
     
 
 def find_bottle():
-    global ddn_rcnn
-    global frame
-    global boxes
-    boxes = ddn_rcnn.forward(frame)
-    if len(boxes) == 0:
-        return "nothing"
+    global min1,frame
+    px,py,pz=0,0,0
+    for id, index, conf, x1, y1, x2, y2 in boxes:
+        if(index == 39):
+            name=ddn_rcnn.labels[index]
+            print(index)
+            print(name)
+            if name=="bottle": #name=="suitcase" or name=="backpack":
+                cx1 = (x2 - x1) // 2 + x1
+                cy1 = (y2 - y1) // 2 + y1
+                cv2.circle(frame, (cx1, cy1), 5, (0, 0, 255), -1)
+                #print("P11:",end="")
+                px,py,pz=get_real_xyz(cx1, cy1)
+                print("t:",px,py,pz)
+                cnt=get_distance(px,py,pz)
+                dis.append(cnt)
+                cnt=int(cnt)
+                print(cnt//10)
+                if cnt<min1 and cnt<300:
+                    if str(cnt)!="nan":
+                        cv2.putText(frame, str(int(cnt)//10), (x1 + 5, y1 + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+                        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 5)
+                        min1=int(cnt)
+                    else:
+                        cv2.putText(frame, str(int(cnt)//10), (x1 + 5, y1 + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 5)
 def find_all():
     global ddn_rcnn
     global frame
@@ -179,29 +199,7 @@ if __name__ == "__main__":
         bx,by,bz,ax,ay,az=0,0,0,0,0,0
         if pose is not None:
             pose_find()
-            px,py,pz=0,0,0
-            for id, index, conf, x1, y1, x2, y2 in boxes:
-                name=ddn_rcnn.labels[index]
-                print(name)
-                if name=="bottle": #name=="suitcase" or name=="backpack":
-                    cx1 = (x2 - x1) // 2 + x1
-                    cy1 = (y2 - y1) // 2 + y1
-                    cv2.circle(frame, (cx1, cy1), 5, (0, 0, 255), -1)
-                    #print("P11:",end="")
-                    px,py,pz=get_real_xyz(cx1, cy1)
-                    print("t:",px,py,pz)
-                    cnt=get_distance(px,py,pz)
-                    dis.append(cnt)
-                    cnt=int(cnt)
-                    print(cnt//10)
-                    if cnt<min1 and cnt<300:
-                        if str(cnt)!="nan":
-                            cv2.putText(frame, str(int(cnt)//10), (x1 + 5, y1 + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
-                            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 5)
-                            min1=int(cnt)
-                        else:
-                            cv2.putText(frame, str(int(cnt)//10), (x1 + 5, y1 + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
-                            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 5)
+        find_bottle()
         cv2.imshow("frame", frame)
         key_code = cv2.waitKey(1)
         if key_code in [27, ord('q')]:
