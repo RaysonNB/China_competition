@@ -66,8 +66,8 @@ def get_pose_target(pose,num):
     return int(p[0][0]),int(p[0][1])
     
 
-def find_bottle(n1,boxes):
-    global min1,frame,px,py,pz,ax,ay,az,bx,by,bz
+def find_all(n1,boxes,min1):
+    global frame,px,py,pz,ax,ay,az,bx,by,bz
     ni="no"
     for id, index, conf, x1, y1, x2, y2 in boxes:
         if(index == n1):
@@ -82,7 +82,6 @@ def find_bottle(n1,boxes):
             cnt=get_distance(px,py,pz,ax,ay,az,bx,by,bz)
             if n1!=0:
                 cv2.putText(frame, str(int(cnt)//10), (x1 + 5, y1-20), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 0, 0), 2)
-            if n1!=0:
                 cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 5)
             print("cnt:",cnt)
             cnt=int(cnt)
@@ -90,17 +89,17 @@ def find_bottle(n1,boxes):
                 if str(cnt)!="nan":
                     if n1!=0:
                         cv2.putText(frame, str(int(cnt)//10), (x1 + 5, y1 + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
-                    if n1!=0:
                         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 5)
-                    min1=int(cnt)
-    return ni
+                        min1=int(cnt)
+    return ni,min1
 
 
 def get_target(poses,boxes):
+    global min1
     target = -1
     target_d = 9999999
     for i, pose in enumerate(poses):
-        aa=find_bottle(0,boxes)
+        aa,min1=find_all(0,boxes,min1)
         if aa=="yes":
             for num in [8,10]:
                 cx, cy = get_pose_target(pose,num)
@@ -112,7 +111,7 @@ def get_target(poses,boxes):
     return poses[target]
 def get_distance(px,py,pz,ax,ay,az,bx,by,bz):
     A,B,C,p1,p2,p3,qx,qy,qz,distance=0,0,0,0,0,0,0,0,0,0
-    if ax<=0 or bx<=0:
+    if ax<=0 or bx<=0 or az==0 or bz==0 or pz==0:
         return 0
     A=int(bx)-int(ax)
     B=int(by)-int(ay)
@@ -129,7 +128,8 @@ def get_distance(px,py,pz,ax,ay,az,bx,by,bz):
         distance = int(pow(((int(px)-int(qx))**2 +(int(py)-int(qy))**2+(int(pz)-int(qz))**2),0.5))
         return int(distance)
     return 0
-def pose_find():
+    
+def pose_draw():
     cx7,cy7,cx9,cy9,cx5,cy5=0,0,0,0,0,0
     global ax,ay,az,bx,by,bz
     #for num in [7,9]: #[7,9] left, [8,10] right
@@ -183,15 +183,15 @@ if __name__ == "__main__":
         if _depth is None: continue
         frame = _frame.copy()
         depth=_depth.copy()
-        
+        pose == "None"
         poses = net_pose.forward(frame)
         boxes = ddn_rcnn.forward(frame)
         pose = get_target(poses, boxes)
         dis=[]
         min1=99999999
         if pose is not None:
-            pose_find()
-        a11=find_bottle(39,boxes)
+            pose_draw()
+        a11,min1=find_all(39,boxes,min1)
         
         cv2.imshow("frame", frame)
         key_code = cv2.waitKey(1)
