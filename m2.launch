@@ -3,6 +3,10 @@
         <arg name="camera" value="cam1" />
         <arg name="device_id" value="$(env CAM1)" />
     </include>
+    <include file="$(find astra_camera)/launch/astrapro.launch">
+        <arg name="camera" value="cam2" />
+        <arg name="device_id" value="$(env CAM2)" />
+    </include>
     <include file="$(find lingao_bringup)/launch/robot.launch"/>
     <include file="$(find lingao_navigation)/launch/navigate.launch">
         <arg name="map_file" value="/home/pcms/maps/fambot_map.yaml" />
