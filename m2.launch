@@ -7,6 +7,4 @@
     <include file="$(find lingao_navigation)/launch/navigate.launch">
         <arg name="map_file" value="/home/pcms/maps/fambot_map.yaml" />
     </include>
-    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find lingao_rviz)/navigation/navigate.rviz"/>
-    <node pkg="beginner_tutorials" type="find_prompt.py"  name="find_prompt" />
 </launch>
