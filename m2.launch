@@ -1,5 +1,4 @@
 <launch>
-    <include file="$(find mr_voice)/launch/voice.launch"/>
     <include file="$(find astra_camera)/launch/astra.launch">
         <arg name="camera" value="cam1" />
         <arg name="device_id" value="$(env CAM1)" />
