@@ -326,7 +326,7 @@ if __name__ == "__main__":
                         cv2.rectangle(rgb_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
                         cx = (x2 - x1) // 2 + x1
                         cy = (y2 - y1) // 2 + y1
-                        cv2.circle(rgb_image, (cx, cy), 5, (0, 0, 255), -1)
+                        cv2.circle(rgb_image, (cx, cy), 5, (0, 255,0 ), -1)
                         
                     else:
                         continue
