@@ -316,6 +316,7 @@ if __name__ == "__main__":
 
         if step == "start":
             detections = dnn_yolo.forward(rgb_image)[0]["det"]
+            cnt_list=[]
             for j in range(2):
                 for i, detection in enumerate(detections):
                     print(detection)
@@ -324,9 +325,10 @@ if __name__ == "__main__":
                     
                     if score > 0.5:# and class_id == 0:
                         cv2.rectangle(rgb_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                        cx = (x2 - x1) // 2 + x1
-                        cy = (y2 - y1) // 2 + y1
-                        cv2.circle(rgb_image, (cx, cy), 5, (0, 255,0 ), -1)
+                        #cx = (x2 - x1) // 2 + x1
+                        #cy = (y2 - y1) // 2 + y1
+                        cnt_list.append([x1, y1,x2,y2])
+                        cv2.circle(rgb_image, ((x2 - x1) // 2 + x1, (y2 - y1) // 2 + y1), 5, (0, 255,0 ), -1)
                         
                     else:
                         continue
@@ -356,6 +358,8 @@ if __name__ == "__main__":
                 print("idiot")
                 if 1==1:
                     #cx, cy = detector2.find_center(cnts[0])
+                    sx1,sx2,sx3,sx4=cnt_list[0][0],cnt_list[0][1],cnt_list[0][2],cnt_list[0][3],
+                    cv2.rectangle(rgb_image, (sx1,sx2), (sx3,sx4), (0, 0, 255), 2)
                     cv2.circle(rgb_image, (cx, cy), 5, (0, 0, 255), -1)
                     #rospy.loginfo("yiooooo")
                     move1(cx, cy,msg)
