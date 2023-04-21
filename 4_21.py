@@ -285,7 +285,7 @@ if __name__ == "__main__":
     
     goal = [[-1.49, 8.48, 0.00247]]
     '''
-    step="start"
+    step="no"
     px, py, pz = 0,0,0
     
     l_x1,l_y1,l_x2,l_y2 = 0,0,0,0
@@ -313,6 +313,9 @@ if __name__ == "__main__":
         frame = rgb_image.copy()
         ys_no=0
         cx1,cx2,cy1,cy2=0,0,0,0
+        if ys_no!=1:
+            if len(s)>= 0 and ("start" in s or "get" in s or "bag" in s):
+                step == "start"
         if step == "start":
             ys_no=1
             detections = dnn_yolo.forward(rgb_image)[0]["det"]
