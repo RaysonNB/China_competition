@@ -16,6 +16,10 @@ from std_msgs.msg import String
 from rospkg import RosPack
 from follow import FollowMe
     
+def callback_voice(msg):
+    global s
+    s = msg.text
+
 def set_gripper(angle, t):
     service_name = "/goal_tool_control"
     rospy.wait_for_service(service_name)
@@ -240,13 +244,11 @@ if __name__ == "__main__":
     _image1 = None
     _topic_image1 = "/cam1/rgb/image_raw"
     rospy.Subscriber(_topic_image1, Image, callback_image1)
-    #rospy.wait_for_message(_topic_image1, Image)
     
     # Depth Image Subscriber
     _depth1 = None
     _topic_depth1 = "/cam1/depth/image_raw"
     rospy.Subscriber(_topic_depth1, Image, callback_depth1)
-    #rospy.wait_for_message(_topic_depth1, Image)
 
     _frame = None
     rospy.Subscriber("/cam2/rgb/image_raw", Image, callback_image)
@@ -256,7 +258,7 @@ if __name__ == "__main__":
     rospy.Subscriber("/cam2/depth/image_raw", Image, callback_depth)
 
     _cmd_vel = rospy.Publisher("/cmd_vel", Twist, queue_size=10)
-    #rospy.Subscriber("/voice/text", Voice, callback_voice)
+    rospy.Subscriber("/voice/text", Voice, callback_voice)
     publisher_speaker = rospy.Publisher("/speaker/say", String, queue_size=10)
     
     s=""
