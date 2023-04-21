@@ -283,7 +283,7 @@ if __name__ == "__main__":
     chassis = RobotChassis()
     chassis.set_initial_pose_in_rviz()
     
-    goal = [[-1.49, 8.48, 0.00247]]
+    pos = [-1.49, 8.48, 0.00247]
     '''
     step="no"
     px, py, pz = 0,0,0
@@ -336,11 +336,6 @@ if __name__ == "__main__":
                         #print(cnt_list)
                         cv2.circle(rgb_image, ((x2 - x1) // 2 + x1, (y2 - y1) // 2 + y1), 5, (0, 255,0 ), -1)
                     px, py, pz = get_real_xyz(cx1, cy1)
-                    cnt = get_distance(px, py, pz, ax, ay, az, bx, by, bz)
-                    cnt = int(cnt)
-                    if cnt < min1 and cnt < 400 and cnt != 0:
-                        flag = "bag1"
-                        min1=cnt
                     l_x1,l_y1,l_x2,l_y2=x1,y1, x2, y2
                         
                     detection=detections[1]
@@ -355,11 +350,6 @@ if __name__ == "__main__":
                         #print(cnt_list)
                         cv2.circle(rgb_image, ((x2 - x1) // 2 + x1, (y2 - y1) // 2 + y1), 5, (0, 255,0 ), -1)   
                     px, py, pz = get_real_xyz(cx2, cy2)
-                    cnt = get_distance(px, py, pz, ax, ay, az, bx, by, bz)
-                    cnt = int(cnt)
-                    if cnt < min1 and cnt < 400 and cnt != 0:
-                        flag = "bag2"
-                        min1=cnt
                         
                     print(cnt_list)
                     r_x1,r_y1,r_x2,r_y2 = x1,y1, x2, y2
@@ -389,21 +379,19 @@ if __name__ == "__main__":
             flag=None
             if pose is not None:
                 f=pose_draw(f)
-                '''
-                if flag == "bag1":
+                if "left" in s:
                     cx,cy = cx1,cy1
-                    k=0
-                elif flag == "bag2":
+                    sx1,sx2,sx3,sx4=l_x1,l_y1,l_x2,l_y2
+                elif "right" in s:
                     cx,cy= cx2,cy2
-                    k=1
+                    sx1,sx2,sx3,sx4=r_x1,r_y1,r_x2,r_y2
                 else:
                     continue
                 if ys_no==1 and len(cnt_list)>=2:
-                    sx1,sx2,sx3,sx4=cnt_list[k][0],cnt_list[k][1],cnt_list[k][2],cnt_list[k][3]
                     cv2.rectangle(rgb_image, (sx1,sx2), (sx3,sx4), (0, 0, 255), 2)
                     #cx,cy = (sx2 - sx1) // 2 + sx1, (sx4 - sx3) // 2 + sx3
                     cv2.circle(rgb_image, (cx,cy), 5, (0, 0, 255), -1)
-                    #rospy.loginfo("yiooooo")
+                    
                     move1(cx, cy, msg)
                     if _depth1[cy][cx]<=10:
                         rospy.loginfo("E")
@@ -417,25 +405,8 @@ if __name__ == "__main__":
                         step="no"
                         break
                     rospy.loginfo("ggggg")
-                
-                else:
-                    if len(cnts) > 0:
-                        cx, cy = detector1.find_center(cnts[0])
-                        cv2.circle(rgb_image, (cx, cy), 5, (0, 0, 255), -1)
-                        #rospy.loginfo("yiooooo")
-                        move1(cx, cy, msg)
-                        if _depth1[cy][cx]<=10:
-                            rospy.loginfo("E")
-                            for i in range(10):
-                                msg.linear.x = pre_x + 0.05
-                                _cmd_vel.publish(msg)
-                            close_gripper(t)
-                            step="follow"
-                            break
-                        rospy.loginfo("ggggg")
-                 '''
         #elif step=="back":
-            #chassis.move_to(goal[i][0], goal[i][1], goal[i][2])
+            #chassis.move_to(pos[0], pos[1], pos[2])
             #break
         #elif step == "follow":
             
