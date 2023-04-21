@@ -291,6 +291,7 @@ if __name__ == "__main__":
     l_x1,l_y1,l_x2,l_y2 = 0,0,0,0
     r_x1,r_y1,r_x2,r_y2 = 0,0,0,0
     cnt_list=[]
+    jayden=0
     publisher_speaker.publish("start")
     while not rospy.is_shutdown():
         #print("ho")
@@ -313,9 +314,10 @@ if __name__ == "__main__":
         frame = rgb_image.copy()
         ys_no=0
         cx1,cx2,cy1,cy2=0,0,0,0
-        if ys_no!=1:
+        if jayden!=1:
             if len(s)>= 0 and ("start" in s or "get" in s or "bag" in s):
                 step == "start"
+                jayden=1
         if step == "start":
             ys_no=1
             detections = dnn_yolo.forward(rgb_image)[0]["det"]
