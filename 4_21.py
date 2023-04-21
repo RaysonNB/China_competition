@@ -439,11 +439,15 @@ if __name__ == "__main__":
             #break
         #elif step == "follow":
             
+        h,w,c = f.shape
+        img = zp.zeros((h,w*2,c),dtype=np.unit8)
+        img[:h,:w,:c] = f
+        img[:h,w:,:c] = rgb_image
 
         f=cv2.line(f, (320,0), (320,500), (0,255,0), 5)
         cv2.imshow("image", f)
 
-        #cv2.imshow("image", _image1)
+        #cv2.imshow("image", img)
         key = cv2.waitKey(1)
         if key in [ord('q'), 27]:
             break
