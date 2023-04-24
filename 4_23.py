@@ -444,8 +444,13 @@ if __name__ == "__main__":
                     angle_degrees = math.degrees(angle)
                     r_angle=angle*180/3.14
                     print(r_angle)
-                    for i in range(int(r_angle)):
-                        msg.angular.z = pre_z + 0.05
+                    if r_angle > 0:
+                        dz = 0.05
+                    elif r_angle<0:
+                        dz = -0.05
+                    angle_cnt=abs(r_angle)/dz
+                    for i in range(int(angle_cnt)):
+                        msg.angular.z = pre_z + dz
                         pre_z=msg.angular.z
                         _cmd_vel.publish(msg)
                     haiya =2
