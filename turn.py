@@ -465,26 +465,44 @@ if __name__ == "__main__":
                     angle_degrees = math.degrees(angle)
                     r_angle=angle*180/3.14
                     print("r", r_angle)
-                    while(abs(r_angle - p_cnt) >= 5):
+                    while(abs(r_angle - p_cnt) >= 5)
+                        f=cv2.line(f, (320,0), (320,500), (0,255,0), 5)
+                        cv2.imshow("haiya1", f)
                         msg.angular.z = pre_z + 0.025
                         time.sleep(0.5)
                         pre_z=msg.angular.z
                         p_cnt+=2.5
                         print(p_cnt, r_angle,"turn",msg.angular.z)
                         _cmd_vel.publish(msg)
-                    haiya =2
+                    haiya = 2
                     rcnt=0
+                    cv2.destroyWindow("haiya1") 
                     lcnt=0
+                    p_cnt=0
+                    if haiya == 2:
+                        rx,ry,d=get_real_xyz(cx,cy)
+                        move_distance=math.sqrt(rx**2 + d**2)
+                        while(abs(move_distance - p_cnt) >= 10):
+                            f=cv2.line(f, (320,0), (320,500), (0,255,0), 5)
+                            cv2.imshow("haiya2", f)
+                            msg.linear.x = pre_x + 0.1
+                            time.sleep(0.5)
+                            pre_x=msg.linear.x
+                            p_cnt+=10
+                            print(p_cnt, r_angle,"turn",msg.linear.x
+                            _cmd_vel.publish(msg)
+                    cv2.destroyWindow("haiya2") 
                     break
-                    
-
+        if haiya == 2 or haiya == 1:
+            cv2.destroyWindow("image")    
+            
         h,w,c = _image1.shape
         f=cv2.line(f, (320,0), (320,500), (0,255,0), 5)
         rgb_image=cv2.line(rgb_image, (320,0), (320,500), (0,255,0), 5)
         img = np.zeros((h,w*2,c),dtype=np.uint8)
         img[:h,:w,:c] = f
         img[:h,w:,:c] = rgb_image
-        
+
         cv2.imshow("image", img)
 
         #cv2.imshow("image", img)
