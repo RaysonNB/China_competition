@@ -632,13 +632,13 @@ if __name__ == "__main__":
                             step="follow"
                         break
         if step == "follow":
-            msg.angular.z=1.57
+            msg.angular.z=3.14
             _cmd_vel.publish(msg)
-            say(" I wll follow you now")
+            say("I wll follow you now")
             x, z, frame = _fw.calc_cmd_vel(_image1, _depth1)
-            _msg_cmd.linear.x = x 
-            _msg_cmd.angular.z = z
-            _pub_cmd.publish(_msg_cmd)
+            msg.linear.x = x 
+            msg.angular.z = z
+            _cmd_vel.publish(msg)
             cv2.imshow("follow", frame)        
             
         h,w,c = _image1.shape
