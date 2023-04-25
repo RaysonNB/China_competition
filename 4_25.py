@@ -17,7 +17,94 @@ from rospkg import RosPack
 from follow import FollowMe
 from tf.transformations import euler_from_quaternion
 from sensor_msgs.msg import Imu
+from typing import Tuple, List
 
+class FollowMe(object):
+    def __init__(self) -> None:
+        self.pre_x, self.pre_z = 0.0, 0.0
+
+    def find_cx_cy(self) -> Tuple[int, int]:
+        global dnn_yolo, image, pree_cx,pree_cy
+        cx,cy=0,0
+        frame = image.copy()
+        detections = dnn_yolo.forward(frame)[0]["det"]
+        for i, detection in enumerate(detections):
+            print(detection)
+            x1, y1, x2, y2, score, class_id = map(int, detection)
+            score = detection[4]
+            print(x1, y1, x2, y2, score, class_id)
+            if score > 0.5 and class_id == 0:
+                #dnn_yolo.draw_bounding_box(detection, frame)
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
+                cx = (x2 - x1) // 2 + x1
+                cy = (y2 - y1) // 2 + y1
+                cv2.circle(frame, (cx, cy), 5, (0, 0, 255), -1)
+                cv2.putText(frame, "person", (x1+5, y1+15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+                break
+        if cx!=0:
+            pree_cx,pree_cy=cx,cy
+                
+            return cx,cy,frame
+        else:
+            return pree_cx,pree_cy,frame
+
+
+    def get_real_xyz(self, depth, x: int, y: int) -> Tuple[float, float, float]:
+        if x < 0 or y < 0: return 0, 0, 0
+
+        a = 49.5 * np.pi / 180
+        b = 60.0 * np.pi / 180
+        d = depth[y][x]
+        h, w = depth.shape[:2]
+        x = x - w // 2
+        y = y - h // 2
+        real_y = y * 2 * d * np.tan(a / 2) / h
+        real_x = x * 2 * d * np.tan(b / 2) / w
+        return real_x, real_y, d
+
+    def calc_linear_x(self, cd: float, td: float) -> float:
+        if cd <= 0: return 0
+        e = cd - td
+        p = 0.0005
+        x = p * e
+        if x > 0: x = min(x, 0.5)
+        if x < 0: x = max(x, -0.5)
+        return x
+
+    def calc_angular_z(self, cx: float, tx: float) -> float:
+        if cx < 0: return 0
+        e = tx - cx
+        p = 0.0025
+        z = p * e
+        if z > 0: z = min(z, 0.3)
+        if z < 0: z = max(z, -0.3)
+        return z
+
+    def calc_cmd_vel(self, image, depth) -> Tuple[float, float]:
+        image = image.copy()
+        depth = depth.copy()
+        
+        cx, cy, frame = self.find_cx_cy()
+        _, _, d = self.get_real_xyz(depth, cx, cy)
+
+        cur_x = self.calc_linear_x(d, 800)
+        cur_z = self.calc_angular_z(cx, 320)
+
+        dx = cur_x - self.pre_x
+        if dx > 0: dx = min(dx, 0.05)
+        if dx < 0: dx = max(dx, -0.05)
+        
+        dz = cur_z - self.pre_z
+        if dz > 0: dz = min(dz, 0.1)
+        if dz < 0: dz = max(dz, -0.1)
+
+        cur_x = self.pre_x + dx
+        cur_z = self.pre_z + dz
+
+        self.pre_x = cur_x 
+        self.pre_z = cur_z 
+
+        return cur_x, cur_z, frame
 def move(forward_speed: float = 0, turn_speed: float = 0):
     global _cmd_vel
     msg = Twist()
@@ -374,7 +461,7 @@ if __name__ == "__main__":
     run=0
     ee=""
     p_cnt=0
-
+    _fw = FollowMe()
     while not rospy.is_shutdown():
         t = 3.0
         if s!="" and s!=pre_s:
@@ -524,16 +611,16 @@ if __name__ == "__main__":
                             d = _depth[cy][cx]
                             if d > 0:
                                 e = d - 50 #number is he last distance
-                                if abs(e) <= 50:
+                                if abs(e) <= 0.1:
                                     haiya = 2
                                 v = 0.0005 * e
                                 print(d, e, v)
                                 move(v, 0)
-                            if d<=5:
+                            if d<=900:
                                 haiya = 2
                         if haiya == 2:
                             print("get")
-                            for i in range(40):
+                            for i in range(70):
                                 msg.linear.x=0.1
                                 _cmd_vel.publish(msg)
                             joint1, joint2, joint3, joint4 = 0.000, 0.9, -0.3,0.0
@@ -542,47 +629,17 @@ if __name__ == "__main__":
                             close_gripper(t)
                             joint1, joint2, joint3, joint4 = 0.000, -1.0, 0.3,0.70
                             set_joints(joint1, joint2, joint3, joint4, t)
+                            step="follow"
                         break
-                    '''
-                    haiya = 2
-                    rcnt=0
-                    cv2.destroyWindow("haiya1") 
-                    lcnt=0
-                    p_cnt=0
-                    move_distance=0
-                    if haiya == 2:
-                        rx,ry,d=get_real_xyz(cx,cy)
-                        move_distance=math.sqrt(rx**2 + d**2)
-                        if move_distance == 0:
-                            continue
-                        print(move_distance)
-                        move_distance = move_distance/2
-                        v1 = 0.0001 * d
-                        print(v1)
-                        while(d >0 and d<3000):
-                            h, w, c = f.shape
-                            rx,ry,d=get_real_xyz(w//2, cy)
-                            rgb_image=cv2.line(rgb_image, (320,0), (320,500), (0,255,0), 5)
-                            cv2.imshow("haiya2", rgb_image)
-                            cv2.waitKey(1)
-                            msg.linear.x = pre_x - 0.03
-                            time.sleep(0.5)
-                            pre_x=msg.linear.x
-                            msg.angular.z=0
-                            p_cnt+=50
-                            print(d, move_distance,"move",msg.linear.x)
-                            _cmd_vel.publish(msg)
-                    msg.linear.x=0
-                    _cmd_vel.publish(msg)
-                    cv2.destroyWindow("haiya2")
-                    joint1, joint2, joint3, joint4 = 0.000, 0.9, -0.3,0.0
-                    set_joints(joint1, joint2, joint3, joint4, t)
-                    time.sleep(t)
-                    close_gripper(t)
-                    joint1, joint2, joint3, joint4 = 0.000, -1.0, 0.3,0.70
-                    set_joints(joint1, joint2, joint3, joint4, t)
-                    step="no"
-                    break'''
+        if step == "follow":
+            msg.angular.z=1.57
+            _cmd_vel.publish(msg)
+            say(" I wll follow you now")
+            x, z, frame = _fw.calc_cmd_vel(_image1, _depth1)
+            _msg_cmd.linear.x = x 
+            _msg_cmd.angular.z = z
+            _pub_cmd.publish(_msg_cmd)
+            cv2.imshow("follow", frame)        
             
         h,w,c = _image1.shape
         f=cv2.line(f, (320,0), (320,500), (0,255,0), 5)
