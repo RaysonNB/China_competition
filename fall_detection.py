@@ -54,8 +54,8 @@ if __name__ == "__main__":
         if depth1 is None or depth2 is None: continue
         
         detections = dnn_yolo.forward(frame)[0]["det"]
-
         for i, detection in enumerate(detections):
+            fall=0
             x1, y1, x2, y2, score, class_id = map(int, detection)
             score = detection[4]
             if class_id != 0:
@@ -64,6 +64,13 @@ if __name__ == "__main__":
             px,py,pz=get_real_xyz(cx, cy)
             if pz<=2000:
               print("w: ",x2-x1,"h: ", y1-y2)
-              #cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 5)
-              #cv2.putText(frame, str(int(pz)), (cx,cy), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 3)
+              if cy<=160:
+                  fall+=1
+              if h<w:
+                  fall+=1
+            if fall==2:
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 255, 0), 5)
+            else:
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0,255), 2)
+              #cv2.putText(frame, str(int(pz)), (cx,cy), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 3)
         
